@@ -4,19 +4,19 @@ from src.rag_qa import LEGAL_DISCLAIMER, answer_question, generate_rule_based_an
 SAMPLE_CLAUSES = [
     {
         "clause_id": "c1",
-        "document_id": "d1",
+        "document_id": "huggingface_ledgar",
         "clause_number": 1,
         "clause_text": "The tenant shall pay rent on the first day of each month.",
     },
     {
         "clause_id": "c2",
-        "document_id": "d1",
+        "document_id": "huggingface_ledgar",
         "clause_number": 2,
         "clause_text": "If payment is more than five days late, the landlord may charge a reasonable late fee.",
     },
     {
         "clause_id": "c3",
-        "document_id": "d1",
+        "document_id": "huggingface_ledgar",
         "clause_number": 3,
         "clause_text": "Either party may terminate this agreement after a material breach and written notice.",
     },

@@ -5,49 +5,44 @@ Use these points to structure the assignment report.
 ## Introduction
 
 - Project title: LegalEase: AI Legal Document Simplifier.
-- Goal: make legal clauses easier to inspect through extraction, simplification, classification, risk labeling, and document Q&A.
+- Goal: make public legal clauses easier to inspect through simplification, classification, weak risk labels, and dataset Q&A.
 - Scope: educational prototype, not a legal advice system.
 
 ## Problem Statement
 
-- Legal documents are often long, dense, and difficult for non-experts to understand.
-- Users need clause-level summaries, risk indicators, and quick document search.
-- Manual legal review is expensive and time-consuming, so AI can provide first-pass assistance.
+- Legal clauses are often dense and difficult for non-experts to understand.
+- Users need clause-level simplifications, label predictions, risk indicators, and quick search over clause text.
+- Public legal datasets allow a reproducible prototype without using private or real user documents.
 
 ## Objectives
 
-- Extract text from PDF, TXT, and DOCX files.
-- Clean text and split it into clause-level records.
-- Build training datasets from public Hugging Face legal data.
+- Build training datasets from the public Hugging Face LexGLUE LEDGAR dataset.
 - Fine-tune a lightweight simplification model.
 - Fine-tune a clause type classifier.
 - Evaluate automatic outputs with NLP and classification metrics.
-- Implement RAG-based Q&A over retrieved clauses.
-- Build a Streamlit demo for end-to-end interaction.
+- Implement RAG-based Q&A over Hugging Face-derived clauses.
+- Build a Streamlit demo for dataset browsing and model interaction.
 
 ## Dataset Description
 
-- Raw demo inputs are stored in `data/raw/pdfs/`.
-- Training data is built from the public LexGLUE LEDGAR dataset on Hugging Face.
-- Extracted text is stored in `data/processed/extracted_text.csv`.
-- Clause records are stored in `data/processed/clauses.csv`.
-- Simplification data is stored in `data/processed/simplification_dataset.csv` with only model-relevant columns and `split`.
-- Classification data is stored in `data/processed/classification_dataset.csv` with model labels, risk metadata, and `split`.
-- The checked-in sample dataset is small and synthetic/demo-oriented, but Notebook 03 downloads public LEDGAR samples for training.
+- Training data is built from `coastalcph/lex_glue` with the `ledgar` subset.
+- Simplification data is stored in `data/processed/simplification_dataset.csv`.
+- Classification data is stored in `data/processed/classification_dataset.csv`.
+- LEDGAR provides the `clause_type` labels.
+- `risk_level` and `risk_type` are weak keyword-rule labels generated for analysis support.
+- `simple_clause` targets are weak auto-generated simplifications, not expert-written gold labels.
 
 ## Methodology
 
-- Text extraction uses PyMuPDF, pdfplumber, plain text reading, and python-docx.
-- Preprocessing normalizes whitespace, removes simple page artifacts, and preserves clause structure.
-- Clause splitting uses legal numbering patterns and sentence-boundary fallback.
-- Simplification uses `google/flan-t5-small` with the prefix `simplify legal text: ` and weak auto-generated simple targets.
-- Classification uses LEDGAR `clause_type` labels with `nlpaueb/legal-bert-base-uncased`, with fallback to `distilbert-base-uncased`.
-- Risk rules use transparent keyword patterns for high and medium risk clauses.
-- RAG uses `sentence-transformers/all-MiniLM-L6-v2` embeddings and FAISS retrieval.
+- Notebook 03 downloads and samples LEDGAR from Hugging Face.
+- Simplification uses `google/flan-t5-small` with the prefix `simplify legal text: `.
+- Classification uses `nlpaueb/legal-bert-base-uncased`, with fallback to `distilbert-base-uncased`.
+- Evaluation uses ROUGE, BERTScore, readability, compression ratio, accuracy, precision, recall, F1, and confusion matrices.
+- RAG uses `sentence-transformers/all-MiniLM-L6-v2` embeddings and FAISS retrieval over the Hugging Face-derived clause rows.
 
 ## Implementation
 
-- Project is notebook-first, with reusable functions moved into `src/`.
+- Project is notebook-first, with reusable functions in `src/`.
 - Streamlit app is implemented in `app.py`.
 - Heavy models are loaded with `st.cache_resource`.
 - Outputs are saved under `models/`, `outputs/`, and `data/evaluation/`.
@@ -61,34 +56,32 @@ Use these points to structure the assignment report.
 
 ## Expected Results
 
-- Extracted text and clause tables should be generated from uploaded documents.
+- Notebook 03 should create non-empty Hugging Face-derived training CSVs.
 - Simplifier should produce shorter plain-language clauses after training.
-- Classifier should assign clause types such as payment, termination, liability, confidentiality, or general.
-- Risk rules should highlight potentially important clauses.
-- Q&A should return answers grounded in retrieved clauses.
+- Classifier should assign LEDGAR clause types.
+- Weak risk labels should highlight potentially important clauses.
+- Q&A should return answers grounded in retrieved dataset clauses.
 
 ## Limitations
 
-- Sample data is too small for reliable model quality claims.
-- Weak labels may be incorrect and should be manually reviewed.
+- Sampled data is small for reliable model quality claims.
+- Weak simplification targets may not reflect expert legal plain-language writing.
+- Weak risk labels may be incorrect and should be manually reviewed.
 - Small transformer models may miss legal nuance.
-- RAG answers depend on retrieval quality and may omit relevant clauses.
+- RAG answers depend on retrieval quality and may omit relevant rows.
 - The app is an educational prototype and not a legal decision system.
 
 ## Future Improvements
 
 - Increase the sampled LEDGAR row limits or use the full dataset for stronger classifier training.
 - Add manually written simplification targets to replace weak generated targets.
-- Improve clause segmentation for complex contracts.
-- Add human-reviewed simplification targets.
-- Add jurisdiction-specific metadata and filtering.
+- Add human-reviewed risk labels.
 - Evaluate with legal experts.
 - Add model cards and data documentation.
-- Add persistent vector index storage for larger document collections.
+- Add persistent vector index storage for larger public datasets.
 
 ## Legal and Ethical Considerations
 
 - Include the legal disclaimer in the README, notebooks, and Streamlit app.
 - Do not present outputs as legal advice.
 - Require human review for important decisions.
-- Avoid collecting sensitive documents unless privacy controls are added.

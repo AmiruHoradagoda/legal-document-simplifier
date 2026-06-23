@@ -1,8 +1,6 @@
 pandas
 numpy
 scikit-learn
-PyMuPDF
-pdfplumber
 transformers
 datasets
 evaluate
@@ -17,9 +15,7 @@ streamlit
 matplotlib
 textstat
 nltk
-spacy
 jupyter
 ipykernel
 pytest
 python-dotenv
-python-docx

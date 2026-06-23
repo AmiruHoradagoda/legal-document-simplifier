@@ -1,22 +1,19 @@
 # LegalEase: AI Legal Document Simplifier
 
-LegalEase is a Jupyter-notebook-first Python machine learning project for educational legal document assistance. It extracts text from legal documents, cleans and splits clauses, builds training datasets, fine-tunes lightweight NLP models, evaluates outputs, adds retrieval-augmented document Q&A, and provides a Streamlit demo.
+LegalEase is a Jupyter-notebook-first Python machine learning project for educational legal document assistance. It builds training data from the public Hugging Face LexGLUE LEDGAR dataset, fine-tunes lightweight NLP models, evaluates outputs, adds retrieval-augmented Q&A over dataset clauses, and provides a Streamlit demo.
 
 > Legal disclaimer: LegalEase is for educational assistance only. It does not provide legal advice, does not replace a lawyer, and should not be used as the sole basis for legal or financial decisions.
 
 ## Project Overview
 
-The project supports an end-to-end legal document simplification workflow:
+The project supports a Hugging Face dataset workflow:
 
-- Import PDF, TXT, and DOCX files.
-- Extract raw document text with PyMuPDF, pdfplumber, plain text readers, and python-docx.
-- Clean extracted text and split it into legal clauses.
 - Create simplification and clause classification datasets from public Hugging Face data.
 - Fine-tune a small text-to-text simplifier with `google/flan-t5-small`.
 - Fine-tune a clause type classifier with `nlpaueb/legal-bert-base-uncased`, with fallback to `distilbert-base-uncased`.
 - Evaluate simplification and classification outputs.
-- Build document Q&A using SentenceTransformers and FAISS.
-- Run a Streamlit app for upload, simplification, classification, risk rules, Q&A, and report downloads.
+- Build Q&A over the Hugging Face-derived clause dataset using SentenceTransformers and FAISS.
+- Run a Streamlit app for dataset browsing, simplification, classification, risk labels, Q&A, and report downloads.
 
 ## Setup With Conda
 
@@ -45,29 +42,20 @@ pip install -r requirements-colab.txt
 
 Run notebooks from top to bottom in this order:
 
-1. `notebooks/01_data_import_and_extraction.ipynb`
-2. `notebooks/02_preprocessing_and_clause_split.ipynb`
-3. `notebooks/03_build_training_datasets.ipynb`
-4. `notebooks/04_train_simplifier_flan_t5.ipynb`
-5. `notebooks/05_train_clause_classifier_legalbert.ipynb`
-6. `notebooks/06_evaluation.ipynb`
-7. `notebooks/07_rag_document_qa.ipynb`
-8. `notebooks/08_end_to_end_demo_test.ipynb`
+1. `notebooks/03_build_training_datasets.ipynb`
+2. `notebooks/04_train_simplifier_flan_t5.ipynb`
+3. `notebooks/05_train_clause_classifier_legalbert.ipynb`
+4. `notebooks/06_evaluation.ipynb`
+5. `notebooks/07_rag_document_qa.ipynb`
+6. `notebooks/08_end_to_end_demo_test.ipynb`
 
-Notebook 03 downloads public training data by default, so you do not need to provide a dataset. Uploaded documents are still useful for demo extraction, RAG, and app testing.
-
-If you only want to train with public datasets in Colab, install requirements and start at `notebooks/03_build_training_datasets.ipynb`, then run notebooks 04, 05, and 06.
+Notebook 03 downloads public training data from Hugging Face, so you do not need to provide a private or real dataset.
 
 ## Data Layout
 
 ```text
 data/
-  raw/
-    pdfs/
-      .gitkeep
   processed/
-    extracted_text.csv
-    clauses.csv
     simplification_dataset.csv
     classification_dataset.csv
   evaluation/
@@ -75,20 +63,16 @@ data/
     results.csv
 ```
 
-Input demo files can go in `data/raw/pdfs/`. The folder name is historical; the loader supports `.pdf`, `.txt`, and `.docx`.
-
 Training data is created by `notebooks/03_build_training_datasets.ipynb` from the public Hugging Face dataset `coastalcph/lex_glue` with the `ledgar` subset.
 
 Processed files:
 
-- `extracted_text.csv`: document text extracted from uploaded/source files.
-- `clauses.csv`: cleaned clause-level records with numbering and text.
 - `simplification_dataset.csv`: `clause_id`, `clause_text`, weak auto-generated `simple_clause`, manual-review flag, and `split`.
 - `classification_dataset.csv`: `clause_id`, `clause_text`, LEDGAR `clause_type`, weak `risk_level`/`risk_type`, rule reason, and `split`.
 - `results.csv`: automatic evaluation metrics.
 - `human_eval_template.csv`: 20-row template for manual review.
 
-See `data/README.md` for the full column-by-column schema. `clauses.csv` is for optional uploaded-document processing and RAG, not the Hugging Face training dataset.
+See `data/README.md` for the column-by-column schema.
 
 ## Model Training
 
@@ -129,7 +113,7 @@ Model:
 - Label mapping: `models/clause_classifier/label_mapping.json`
 - Prediction output: `outputs/predictions/clause_classifier_predictions.csv`
 
-The `clause_type` labels come from LEDGAR. `risk_level` and `risk_type` are still weak keyword-rule labels.
+The `clause_type` labels come from LEDGAR. `risk_level` and `risk_type` are weak keyword-rule labels generated for analysis support.
 
 ## Evaluation
 
@@ -157,7 +141,7 @@ Outputs:
 
 Current evaluation files may contain placeholders until notebooks 04 and 05 are run and prediction CSVs are populated.
 
-## RAG Document Q&A
+## RAG Dataset Q&A
 
 Run:
 
@@ -167,7 +151,7 @@ notebooks/07_rag_document_qa.ipynb
 
 The Q&A pipeline:
 
-- Loads `data/processed/clauses.csv`.
+- Loads `data/processed/classification_dataset.csv`.
 - Embeds clauses with `sentence-transformers/all-MiniLM-L6-v2`.
 - Builds a FAISS index with `faiss-cpu`.
 - Retrieves top-k relevant clauses for a question.
@@ -186,12 +170,11 @@ streamlit run app.py
 
 The app supports:
 
-- PDF/TXT/DOCX upload.
-- Text extraction, cleaning, and clause splitting.
+- Loading rows from the Hugging Face-derived dataset CSVs.
 - Saved simplifier model inference.
 - Saved clause classifier inference.
-- Rule-based risk detection.
-- RAG-style document Q&A.
+- Displaying weak risk labels from Notebook 03.
+- RAG-style dataset Q&A.
 - CSV and TXT report downloads.
 
 If trained models are missing, the app falls back to original clauses for simplification and keyword-based labels for classification.
@@ -213,16 +196,11 @@ legal-document-simplifier/
   outputs/
     charts/
     predictions/
-    simplified_reports/
   src/
     classifier.py
-    clause_splitter.py
     dataset_builder.py
-    document_loader.py
     evaluator.py
-    preprocessing.py
     rag_qa.py
-    risk_rules.py
     simplifier.py
   tests/
 ```
@@ -233,7 +211,7 @@ legal-document-simplifier/
 - `risk_level` and `risk_type` labels are rule-generated and may be noisy.
 - Simplification targets are weak auto-generated targets, not expert-written plain-language rewrites.
 - Small models may miss legal nuance and can produce incomplete or inaccurate simplifications.
-- RAG answers are limited to retrieved clauses and may miss information in unretrieved sections.
+- RAG answers are limited to retrieved clauses and may miss information in unretrieved rows.
 - This project does not perform legal reasoning or jurisdiction-specific legal validation.
 - Outputs require human review before any real-world use.
 

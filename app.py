@@ -1,17 +1,13 @@
-"""Streamlit demo for LegalEase."""
+"""Streamlit demo for the Hugging Face dataset workflow."""
 
 from __future__ import annotations
 
 from pathlib import Path
-import tempfile
 
 import pandas as pd
 import streamlit as st
 
-from src.clause_splitter import build_clause_records
 from src.dataset_builder import label_clause_with_rules
-from src.document_loader import SUPPORTED_EXTENSIONS, extract_text_from_file
-from src.preprocessing import clean_legal_text
 from src.rag_qa import (
     DEFAULT_EMBEDDING_MODEL,
     answer_question,
@@ -19,18 +15,39 @@ from src.rag_qa import (
     embed_texts,
     load_embedding_model,
 )
-from src.risk_rules import apply_risk_rules_to_rows
 from src.simplifier import INPUT_PREFIX
 
 
 DISCLAIMER = (
     "LegalEase is for educational assistance only and does not provide legal advice. "
-    "Always review important legal questions with a qualified professional."
+    "Always review important legal questions with a qualified lawyer or legal professional."
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parent
+SIMPLIFICATION_DATASET_PATH = PROJECT_ROOT / "data" / "processed" / "simplification_dataset.csv"
+CLASSIFICATION_DATASET_PATH = PROJECT_ROOT / "data" / "processed" / "classification_dataset.csv"
 SIMPLIFIER_DIR = PROJECT_ROOT / "models" / "simplifier"
 CLASSIFIER_DIR = PROJECT_ROOT / "models" / "clause_classifier"
+
+
+@st.cache_data(show_spinner=False)
+def load_dataset_csvs() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Load Notebook 03 outputs."""
+
+    simplification_columns = ["clause_id", "clause_text", "simple_clause", "split"]
+    classification_columns = [
+        "clause_id",
+        "clause_text",
+        "clause_type",
+        "risk_level",
+        "risk_type",
+        "weak_label_reason",
+        "split",
+    ]
+
+    simplification_df = _read_csv_or_empty(SIMPLIFICATION_DATASET_PATH, simplification_columns)
+    classification_df = _read_csv_or_empty(CLASSIFICATION_DATASET_PATH, classification_columns)
+    return simplification_df, classification_df
 
 
 @st.cache_resource(show_spinner=False)
@@ -84,10 +101,7 @@ def load_rag_embedding_model():
 
 def initialize_state() -> None:
     defaults = {
-        "raw_text": "",
-        "document_id": "",
-        "source_name": "",
-        "clauses_df": pd.DataFrame(),
+        "selected_df": pd.DataFrame(),
         "report_df": pd.DataFrame(),
         "rag_mode": "not_built",
         "rag_index": None,
@@ -98,58 +112,34 @@ def initialize_state() -> None:
             st.session_state[key] = value
 
 
-def process_uploaded_file(uploaded_file) -> None:
-    suffix = Path(uploaded_file.name).suffix.lower()
-    if suffix not in SUPPORTED_EXTENSIONS:
-        raise ValueError(f"Unsupported file type: {suffix}")
+def build_demo_dataset(
+    simplification_df: pd.DataFrame,
+    classification_df: pd.DataFrame,
+    *,
+    split: str,
+    max_rows: int,
+) -> pd.DataFrame:
+    """Build the app working set from Hugging Face-derived CSV rows."""
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir) / uploaded_file.name
-        temp_path.write_bytes(uploaded_file.getbuffer())
-        extracted_rows = extract_text_from_file(temp_path, base_dir=temp_dir)
-
-    text_parts = [
-        str(row.get("text", "")).strip()
-        for row in extracted_rows
-        if str(row.get("text", "")).strip() and not str(row.get("error", "")).strip()
-    ]
-    if not text_parts:
-        errors = "; ".join(str(row.get("error", "")) for row in extracted_rows if row.get("error"))
-        raise ValueError(errors or "No text could be extracted from the uploaded document.")
-
-    raw_text = "\n\n".join(text_parts)
-    cleaned_text = clean_legal_text(raw_text)
-    first_row = extracted_rows[0]
-    document_id = str(first_row.get("document_id", Path(uploaded_file.name).stem))
-    clause_rows = build_clause_records(
-        document_id=document_id,
-        source_path=uploaded_file.name,
-        text=cleaned_text,
-        min_words=5,
-        min_chars=20,
-    )
-
-    clauses_df = pd.DataFrame(clause_rows)
-    st.session_state.raw_text = cleaned_text
-    st.session_state.document_id = document_id
-    st.session_state.source_name = uploaded_file.name
-    st.session_state.clauses_df = clauses_df
-    st.session_state.report_df = build_base_report(clauses_df)
-    st.session_state.rag_mode = "not_built"
-    st.session_state.rag_index = None
-    st.session_state.rag_embeddings = None
-
-
-def build_base_report(clauses_df: pd.DataFrame) -> pd.DataFrame:
-    if clauses_df.empty:
+    if classification_df.empty:
         return pd.DataFrame()
 
-    rows = apply_risk_rules_to_rows(clauses_df.to_dict(orient="records"))
-    report_df = pd.DataFrame(rows)
-    for column in ["simplified_clause", "predicted_clause_type", "classifier_confidence"]:
-        if column not in report_df.columns:
-            report_df[column] = ""
-    return report_df
+    filtered = classification_df.copy()
+    if split != "all":
+        filtered = filtered[filtered["split"] == split].copy()
+
+    filtered = filtered.head(max_rows).reset_index(drop=True)
+    if filtered.empty:
+        return filtered
+
+    simple_lookup = simplification_df.set_index("clause_id")["simple_clause"].to_dict()
+    filtered["reference_simple_clause"] = filtered["clause_id"].map(simple_lookup).fillna("")
+    filtered["document_id"] = "huggingface_ledgar"
+    filtered["clause_number"] = range(1, len(filtered) + 1)
+    filtered["simplified_clause"] = ""
+    filtered["predicted_clause_type"] = ""
+    filtered["classifier_confidence"] = ""
+    return filtered
 
 
 def run_simplifier(clauses: list[str]) -> tuple[list[str], str]:
@@ -200,8 +190,8 @@ def run_classifier(clauses: list[str]) -> tuple[list[str], list[float], str]:
 
 
 def build_rag_resources() -> None:
-    clauses_df = st.session_state.clauses_df
-    if clauses_df.empty:
+    selected_df = st.session_state.selected_df
+    if selected_df.empty:
         return
 
     embedding_model = load_rag_embedding_model()
@@ -212,7 +202,7 @@ def build_rag_resources() -> None:
         return
 
     try:
-        embeddings = embed_texts(embedding_model, clauses_df["clause_text"].tolist())
+        embeddings = embed_texts(embedding_model, selected_df["clause_text"].tolist())
         index = build_faiss_index(embeddings)
         st.session_state.rag_mode = "sentence-transformers + FAISS"
         st.session_state.rag_index = index
@@ -228,36 +218,53 @@ def report_to_txt(report_df: pd.DataFrame) -> str:
     for _, row in report_df.iterrows():
         lines.append(f"Clause {row.get('clause_number', '')}")
         lines.append(f"Original: {row.get('clause_text', '')}")
-        lines.append(f"Simplified: {row.get('simplified_clause', '')}")
-        lines.append(f"Clause type: {row.get('predicted_clause_type', '')}")
-        lines.append(f"Rule risk: {row.get('rule_risk_level', '')} / {row.get('rule_risk_type', '')}")
+        lines.append(f"Reference simplification: {row.get('reference_simple_clause', '')}")
+        lines.append(f"Model simplification: {row.get('simplified_clause', '')}")
+        lines.append(f"Dataset clause type: {row.get('clause_type', '')}")
+        lines.append(f"Predicted clause type: {row.get('predicted_clause_type', '')}")
+        lines.append(f"Dataset risk: {row.get('risk_level', '')} / {row.get('risk_type', '')}")
         lines.append("")
     return "\n".join(lines)
 
 
-def render_upload_page() -> None:
-    st.header("Upload and Extract")
-    uploaded_file = st.file_uploader("Upload a PDF, TXT, or DOCX document", type=["pdf", "txt", "docx"])
-    if uploaded_file and st.button("Process Document", type="primary"):
-        try:
-            with st.spinner("Extracting text and splitting clauses..."):
-                process_uploaded_file(uploaded_file)
-            st.success(f"Processed {len(st.session_state.clauses_df)} clause(s).")
-        except Exception as exc:
-            st.error(f"Processing failed: {exc}")
+def render_dataset_page(simplification_df: pd.DataFrame, classification_df: pd.DataFrame) -> None:
+    st.header("Hugging Face Dataset")
+    if simplification_df.empty or classification_df.empty:
+        st.error("Run Notebook 03 first to create the Hugging Face-derived dataset CSVs.")
+        return
 
-    if st.session_state.raw_text:
-        st.subheader("Extracted Text Preview")
-        st.text_area("Cleaned text", st.session_state.raw_text[:5000], height=220)
-        st.subheader("Clauses")
-        st.dataframe(st.session_state.clauses_df, use_container_width=True, hide_index=True)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        split = st.selectbox("Split", ["all", "train", "validation", "test"], index=0)
+    with col2:
+        max_rows = st.number_input("Rows", min_value=5, max_value=200, value=25, step=5)
+    with col3:
+        st.metric("Classification rows", len(classification_df))
+
+    if st.button("Load Rows", type="primary"):
+        selected_df = build_demo_dataset(
+            simplification_df,
+            classification_df,
+            split=split,
+            max_rows=int(max_rows),
+        )
+        st.session_state.selected_df = selected_df
+        st.session_state.report_df = selected_df.copy()
+        st.session_state.rag_mode = "not_built"
+        st.session_state.rag_index = None
+        st.session_state.rag_embeddings = None
+
+    if st.session_state.selected_df.empty:
+        st.info("Load rows from the Hugging Face-derived dataset to start the demo.")
+    else:
+        st.dataframe(st.session_state.selected_df, use_container_width=True, hide_index=True)
 
 
 def render_simplification_page() -> None:
     st.header("Simplification")
     report_df = st.session_state.report_df
     if report_df.empty:
-        st.info("Upload and process a document first.")
+        st.info("Load dataset rows first.")
         return
 
     if st.button("Run Simplifier", type="primary"):
@@ -268,21 +275,21 @@ def render_simplification_page() -> None:
             st.session_state.report_df = report_df
         st.info(message)
 
-    columns = ["clause_number", "clause_text", "simplified_clause"]
+    columns = ["clause_number", "clause_text", "reference_simple_clause", "simplified_clause"]
     st.dataframe(st.session_state.report_df[columns], use_container_width=True, hide_index=True)
 
 
-def render_risk_page() -> None:
-    st.header("Clause Classification and Risk Rules")
+def render_classification_page() -> None:
+    st.header("Classification and Risk Labels")
     report_df = st.session_state.report_df
     if report_df.empty:
-        st.info("Upload and process a document first.")
+        st.info("Load dataset rows first.")
         return
 
-    if st.button("Run Classifier and Risk Rules", type="primary"):
+    if st.button("Run Classifier", type="primary"):
         with st.spinner("Classifying clauses..."):
             labels, confidences, message = run_classifier(report_df["clause_text"].tolist())
-            updated = pd.DataFrame(apply_risk_rules_to_rows(report_df.to_dict(orient="records")))
+            updated = report_df.copy()
             updated["predicted_clause_type"] = labels
             updated["classifier_confidence"] = confidences
             st.session_state.report_df = updated
@@ -291,19 +298,20 @@ def render_risk_page() -> None:
     columns = [
         "clause_number",
         "clause_text",
+        "clause_type",
         "predicted_clause_type",
         "classifier_confidence",
-        "rule_risk_level",
-        "rule_risk_type",
-        "rule_matches",
+        "risk_level",
+        "risk_type",
+        "weak_label_reason",
     ]
     st.dataframe(st.session_state.report_df[columns], use_container_width=True, hide_index=True)
 
 
 def render_qa_page() -> None:
-    st.header("Document Q&A")
-    if st.session_state.clauses_df.empty:
-        st.info("Upload and process a document first.")
+    st.header("Dataset Q&A")
+    if st.session_state.selected_df.empty:
+        st.info("Load dataset rows first.")
         return
 
     if st.button("Build Q&A Index", type="primary"):
@@ -311,7 +319,7 @@ def render_qa_page() -> None:
             build_rag_resources()
         st.info(f"Retrieval mode: {st.session_state.rag_mode}")
 
-    question = st.text_input("Ask a question about the uploaded document", value="What happens if payment is late?")
+    question = st.text_input("Ask a question about the loaded dataset rows", value="What happens if payment is late?")
     top_k = st.slider("Clauses to retrieve", min_value=1, max_value=10, value=3)
     if st.button("Answer Question"):
         embedding_model = None
@@ -321,7 +329,7 @@ def render_qa_page() -> None:
 
         result = answer_question(
             question,
-            st.session_state.clauses_df.to_dict(orient="records"),
+            st.session_state.selected_df.to_dict(orient="records"),
             model=embedding_model,
             index=st.session_state.rag_index,
             embeddings=st.session_state.rag_embeddings,
@@ -337,7 +345,7 @@ def render_downloads_page() -> None:
     st.header("Downloads")
     report_df = st.session_state.report_df
     if report_df.empty:
-        st.info("Upload and process a document first.")
+        st.info("Load dataset rows first.")
         return
 
     st.dataframe(report_df, use_container_width=True, hide_index=True)
@@ -349,36 +357,48 @@ def render_downloads_page() -> None:
         st.download_button(
             "Download CSV Report",
             data=csv_data,
-            file_name="legalease_simplified_report.csv",
+            file_name="legalease_huggingface_report.csv",
             mime="text/csv",
         )
     with col2:
         st.download_button(
             "Download TXT Report",
             data=txt_data,
-            file_name="legalease_simplified_report.txt",
+            file_name="legalease_huggingface_report.txt",
             mime="text/plain",
         )
+
+
+def _read_csv_or_empty(path: Path, columns: list[str]) -> pd.DataFrame:
+    if path.exists():
+        df = pd.read_csv(path)
+    else:
+        df = pd.DataFrame(columns=columns)
+    for column in columns:
+        if column not in df.columns:
+            df[column] = ""
+    return df[columns].fillna("")
 
 
 def main() -> None:
     st.set_page_config(page_title="LegalEase", layout="wide")
     initialize_state()
+    simplification_df, classification_df = load_dataset_csvs()
 
-    st.title("LegalEase: AI Legal Document Simplifier")
+    st.title("LegalEase: Hugging Face Legal Dataset Demo")
     st.warning(DISCLAIMER)
 
     page = st.sidebar.radio(
         "Page",
-        ["Upload", "Simplification", "Classification and Risk", "Q&A", "Downloads"],
+        ["Dataset", "Simplification", "Classification and Risk", "Q&A", "Downloads"],
     )
 
-    if page == "Upload":
-        render_upload_page()
+    if page == "Dataset":
+        render_dataset_page(simplification_df, classification_df)
     elif page == "Simplification":
         render_simplification_page()
     elif page == "Classification and Risk":
-        render_risk_page()
+        render_classification_page()
     elif page == "Q&A":
         render_qa_page()
     else:

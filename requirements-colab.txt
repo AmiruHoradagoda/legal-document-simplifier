@@ -3,8 +3,6 @@
 pandas
 numpy
 scikit-learn
-PyMuPDF
-pdfplumber
 transformers
 datasets
 evaluate
@@ -19,8 +17,6 @@ streamlit
 matplotlib
 textstat
 nltk
-spacy
 pytest
 python-dotenv
-python-docx
 pillow<12.0,>=8.0
