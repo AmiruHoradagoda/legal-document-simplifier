@@ -11,7 +11,7 @@ The project supports an end-to-end legal document simplification workflow:
 - Import PDF, TXT, and DOCX files.
 - Extract raw document text with PyMuPDF, pdfplumber, plain text readers, and python-docx.
 - Clean extracted text and split it into legal clauses.
-- Create simplification and clause classification datasets.
+- Create simplification and clause classification datasets from public Hugging Face data.
 - Fine-tune a small text-to-text simplifier with `google/flan-t5-small`.
 - Fine-tune a clause type classifier with `nlpaueb/legal-bert-base-uncased`, with fallback to `distilbert-base-uncased`.
 - Evaluate simplification and classification outputs.
@@ -35,6 +35,12 @@ If PyTorch installation needs a platform-specific wheel, install the correct PyT
 pip install -r requirements.txt
 ```
 
+For Google Colab, use the Colab-specific dependency file to avoid replacing Colab's built-in Jupyter packages:
+
+```bash
+pip install -r requirements-colab.txt
+```
+
 ## Notebook Execution Order
 
 Run notebooks from top to bottom in this order:
@@ -48,7 +54,9 @@ Run notebooks from top to bottom in this order:
 7. `notebooks/07_rag_document_qa.ipynb`
 8. `notebooks/08_end_to_end_demo_test.ipynb`
 
-The notebooks are designed to run on small sample data first. Add larger datasets only after the full workflow works.
+Notebook 03 downloads public training data by default, so you do not need to provide a dataset. Uploaded documents are still useful for demo extraction, RAG, and app testing.
+
+If you only want to train with public datasets in Colab, install requirements and start at `notebooks/03_build_training_datasets.ipynb`, then run notebooks 04, 05, and 06.
 
 ## Data Layout
 
@@ -56,8 +64,7 @@ The notebooks are designed to run on small sample data first. Add larger dataset
 data/
   raw/
     pdfs/
-      sample_lease_clause.txt
-    sample_clauses.csv
+      .gitkeep
   processed/
     extracted_text.csv
     clauses.csv
@@ -68,16 +75,20 @@ data/
     results.csv
 ```
 
-Input files go in `data/raw/pdfs/`. The folder name is historical; the loader supports `.pdf`, `.txt`, and `.docx`.
+Input demo files can go in `data/raw/pdfs/`. The folder name is historical; the loader supports `.pdf`, `.txt`, and `.docx`.
+
+Training data is created by `notebooks/03_build_training_datasets.ipynb` from the public Hugging Face dataset `coastalcph/lex_glue` with the `ledgar` subset.
 
 Processed files:
 
 - `extracted_text.csv`: document text extracted from uploaded/source files.
 - `clauses.csv`: cleaned clause-level records with numbering and text.
-- `simplification_dataset.csv`: original clause text plus manually filled `simple_clause` targets.
-- `classification_dataset.csv`: clause text plus weak labels for `clause_type`, `risk_level`, and `risk_type`.
+- `simplification_dataset.csv`: `clause_id`, `clause_text`, weak auto-generated `simple_clause`, manual-review flag, and `split`.
+- `classification_dataset.csv`: `clause_id`, `clause_text`, LEDGAR `clause_type`, weak `risk_level`/`risk_type`, rule reason, and `split`.
 - `results.csv`: automatic evaluation metrics.
 - `human_eval_template.csv`: 20-row template for manual review.
+
+See `data/README.md` for the full column-by-column schema. `clauses.csv` is for optional uploaded-document processing and RAG, not the Hugging Face training dataset.
 
 ## Model Training
 
@@ -98,7 +109,7 @@ Model:
 - Output model path: `models/simplifier/`
 - Prediction output: `outputs/predictions/simplifier_predictions.csv`
 
-The included sample targets are only for smoke testing. Replace or expand them with manually reviewed simplifications before reporting model quality.
+Notebook 03 creates weak simplification targets automatically because public expert-written legal simplification pairs are limited. These targets are suitable for demonstrating the pipeline, but human-written simplifications are still better for final quality.
 
 ### Clause Classifier
 
@@ -118,7 +129,7 @@ Model:
 - Label mapping: `models/clause_classifier/label_mapping.json`
 - Prediction output: `outputs/predictions/clause_classifier_predictions.csv`
 
-The current labels are weak labels from keyword rules. Review and improve labels before serious training.
+The `clause_type` labels come from LEDGAR. `risk_level` and `risk_type` are still weak keyword-rule labels.
 
 ## Evaluation
 
@@ -204,14 +215,23 @@ legal-document-simplifier/
     predictions/
     simplified_reports/
   src/
+    classifier.py
+    clause_splitter.py
+    dataset_builder.py
+    document_loader.py
+    evaluator.py
+    preprocessing.py
+    rag_qa.py
+    risk_rules.py
+    simplifier.py
   tests/
 ```
 
 ## Limitations
 
-- The included sample data is intentionally tiny and is only suitable for smoke testing.
-- Weak classification labels are rule-generated and may be noisy.
-- Simplification quality depends on manually reviewed `simple_clause` targets.
+- Notebook 03 samples the public LEDGAR dataset to stay Colab-friendly; increase row limits for stronger training.
+- `risk_level` and `risk_type` labels are rule-generated and may be noisy.
+- Simplification targets are weak auto-generated targets, not expert-written plain-language rewrites.
 - Small models may miss legal nuance and can produce incomplete or inaccurate simplifications.
 - RAG answers are limited to retrieved clauses and may miss information in unretrieved sections.
 - This project does not perform legal reasoning or jurisdiction-specific legal validation.

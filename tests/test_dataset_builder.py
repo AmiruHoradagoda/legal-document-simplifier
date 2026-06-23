@@ -5,6 +5,7 @@ from src.dataset_builder import (
     find_missing_values,
     label_clause_with_rules,
     split_distribution,
+    weak_simplify_legal_text,
 )
 
 
@@ -30,11 +31,14 @@ def test_label_clause_with_rules_detects_high_liability_risk():
 
 def test_build_simplification_dataset_leaves_manual_field_blank():
     rows = build_simplification_dataset(
-        [{"clause_id": "c1", "document_id": "d1", "clause_number": 1, "clause_text": "The tenant shall pay rent."}]
+        [{"clause_id": "c1", "clause_text": "The tenant shall pay rent."}]
     )
 
     assert rows[0]["simple_clause"] == ""
     assert rows[0]["needs_manual_simplification"] is True
+    assert "source_path" not in rows[0]
+    assert "document_id" not in rows[0]
+    assert "clause_number" not in rows[0]
 
 
 def test_build_classification_dataset_has_no_missing_labels():
@@ -51,3 +55,14 @@ def test_build_classification_dataset_has_no_missing_labels():
     assert missing == {"clause_type": 0, "risk_level": 0, "risk_type": 0, "split": 0}
     assert class_distribution(rows, "risk_level")["high"] == 1
     assert set(split_distribution(rows)) == {"train", "validation", "test"}
+
+
+def test_weak_simplify_legal_text_replaces_common_legalese():
+    simplified = weak_simplify_legal_text(
+        "The lessee shall remit payment pursuant to this agreement prior to termination."
+    )
+
+    assert "renter" in simplified.lower()
+    assert "must" in simplified.lower()
+    assert "under" in simplified.lower()
+    assert "before" in simplified.lower()

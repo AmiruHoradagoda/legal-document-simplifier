@@ -18,7 +18,7 @@ Use these points to structure the assignment report.
 
 - Extract text from PDF, TXT, and DOCX files.
 - Clean text and split it into clause-level records.
-- Build training datasets for simplification and classification.
+- Build training datasets from public Hugging Face legal data.
 - Fine-tune a lightweight simplification model.
 - Fine-tune a clause type classifier.
 - Evaluate automatic outputs with NLP and classification metrics.
@@ -27,20 +27,21 @@ Use these points to structure the assignment report.
 
 ## Dataset Description
 
-- Raw inputs are stored in `data/raw/pdfs/`.
+- Raw demo inputs are stored in `data/raw/pdfs/`.
+- Training data is built from the public LexGLUE LEDGAR dataset on Hugging Face.
 - Extracted text is stored in `data/processed/extracted_text.csv`.
 - Clause records are stored in `data/processed/clauses.csv`.
-- Simplification data is stored in `data/processed/simplification_dataset.csv`.
-- Classification data is stored in `data/processed/classification_dataset.csv`.
-- The current sample dataset is small and synthetic/demo-oriented.
+- Simplification data is stored in `data/processed/simplification_dataset.csv` with only model-relevant columns and `split`.
+- Classification data is stored in `data/processed/classification_dataset.csv` with model labels, risk metadata, and `split`.
+- The checked-in sample dataset is small and synthetic/demo-oriented, but Notebook 03 downloads public LEDGAR samples for training.
 
 ## Methodology
 
 - Text extraction uses PyMuPDF, pdfplumber, plain text reading, and python-docx.
 - Preprocessing normalizes whitespace, removes simple page artifacts, and preserves clause structure.
 - Clause splitting uses legal numbering patterns and sentence-boundary fallback.
-- Simplification uses `google/flan-t5-small` with the prefix `simplify legal text: `.
-- Classification uses `nlpaueb/legal-bert-base-uncased`, with fallback to `distilbert-base-uncased`.
+- Simplification uses `google/flan-t5-small` with the prefix `simplify legal text: ` and weak auto-generated simple targets.
+- Classification uses LEDGAR `clause_type` labels with `nlpaueb/legal-bert-base-uncased`, with fallback to `distilbert-base-uncased`.
 - Risk rules use transparent keyword patterns for high and medium risk clauses.
 - RAG uses `sentence-transformers/all-MiniLM-L6-v2` embeddings and FAISS retrieval.
 
@@ -76,7 +77,8 @@ Use these points to structure the assignment report.
 
 ## Future Improvements
 
-- Add a larger manually annotated legal clause dataset.
+- Increase the sampled LEDGAR row limits or use the full dataset for stronger classifier training.
+- Add manually written simplification targets to replace weak generated targets.
 - Improve clause segmentation for complex contracts.
 - Add human-reviewed simplification targets.
 - Add jurisdiction-specific metadata and filtering.

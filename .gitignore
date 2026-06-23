@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local environments and secrets
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+env/
+ENV/
+conda-meta/
+
+# IDE and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Model artifacts and trainer checkpoints
+models/**/checkpoint-*/
+models/**/*.bin
+models/**/*.safetensors
+models/**/*.pt
+models/**/*.pth
+models/**/*.onnx
+outputs/*_trainer/
+outputs/**/checkpoint-*/
+
+# Generated large reports or ad hoc exports
+outputs/simplified_reports/*
+!outputs/simplified_reports/.gitkeep
+
+# Uploaded/private source documents
+data/raw/pdfs/*
+!data/raw/pdfs/.gitkeep
+
+# Local FAISS/vector artifacts
+*.faiss
+*.index

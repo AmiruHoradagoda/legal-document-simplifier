@@ -1,17 +1,1 @@
-stage,metric,value,notes
-simplifier,rouge1,nan,no paired predictions
-simplifier,rouge2,nan,no paired predictions
-simplifier,rougeL,nan,no paired predictions
-simplifier,rougeLsum,nan,no paired predictions
-simplifier,bertscore_precision,nan,no paired predictions
-simplifier,bertscore_recall,nan,no paired predictions
-simplifier,bertscore_f1,nan,no paired predictions
-simplifier,source_flesch_reading_ease,nan,readability/compression summary
-simplifier,prediction_flesch_reading_ease,nan,readability/compression summary
-simplifier,source_flesch_kincaid_grade,nan,readability/compression summary
-simplifier,prediction_flesch_kincaid_grade,nan,readability/compression summary
-simplifier,compression_ratio,nan,readability/compression summary
-classifier,accuracy,nan,weighted average where applicable
-classifier,precision,nan,weighted average where applicable
-classifier,recall,nan,weighted average where applicable
-classifier,f1,nan,weighted average where applicable
+﻿stage,metric,value,notes
