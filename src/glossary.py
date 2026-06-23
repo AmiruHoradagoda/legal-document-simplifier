@@ -1,0 +1,1 @@
+"""Legal glossary utilities."""

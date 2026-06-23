@@ -1,0 +1,6 @@
+,pred_confidentiality,pred_general,pred_liability,pred_payment,pred_termination
+true_confidentiality,0,0,0,0,0
+true_general,0,0,0,0,0
+true_liability,0,0,0,0,0
+true_payment,0,0,0,0,0
+true_termination,0,0,0,0,0

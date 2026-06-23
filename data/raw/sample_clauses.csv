@@ -1,0 +1,4 @@
+clause_id,source,clause_text,simple_text,risk_label
+sample-001,synthetic,"The lessee shall remit payment within thirty days of receipt of invoice.","The renter must pay within 30 days after getting the invoice.",low
+sample-002,synthetic,"Either party may terminate this agreement upon material breach after written notice and a ten-day cure period.","Either side can end the agreement for a serious breach after written notice and 10 days to fix it.",medium
+sample-003,synthetic,"The provider shall not be liable for indirect, incidental, special, consequential, or punitive damages.","The provider is not responsible for certain indirect or extra damages.",high
