@@ -21,7 +21,7 @@ Use these points to structure the assignment report.
 - Fine-tune a clause type classifier.
 - Evaluate automatic outputs with NLP and classification metrics.
 - Implement RAG-based Q&A over Hugging Face-derived clauses.
-- Build a Streamlit application for dataset browsing and model interaction.
+- Build a notebook-based inference workflow for legal document file paths.
 
 ## Dataset Description
 
@@ -43,8 +43,8 @@ Use these points to structure the assignment report.
 ## Implementation
 
 - Project is notebook-first, with reusable functions in `src/`.
-- Streamlit app is implemented in `app.py`.
-- Heavy models are loaded with `st.cache_resource`.
+- Document inference is implemented in `notebooks/09_document_file_inference.ipynb`.
+- Trained models are loaded from the `models/` directory for inference.
 - Outputs are saved under `models/`, `outputs/`, and `data/evaluation/`.
 
 ## Evaluation Plan
@@ -82,6 +82,6 @@ Use these points to structure the assignment report.
 
 ## Legal and Ethical Considerations
 
-- Include the legal disclaimer in the README, notebooks, and Streamlit app.
+- Include the legal disclaimer in the README and notebooks.
 - Do not present outputs as legal advice.
 - Require human review for important decisions.

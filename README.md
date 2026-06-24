@@ -1,6 +1,6 @@
 # LegalEase: AI Legal Document Simplifier
 
-LegalEase is a Jupyter-notebook-first Python machine learning project for educational legal document assistance. It builds training data from the public Hugging Face LexGLUE LEDGAR dataset, fine-tunes NLP models, evaluates outputs, adds retrieval-augmented Q&A over dataset clauses, and provides a Streamlit application.
+LegalEase is a Jupyter-notebook-first Python machine learning project for educational legal document assistance. It builds training data from the public Hugging Face LexGLUE LEDGAR dataset, fine-tunes NLP models, evaluates outputs, adds retrieval-augmented Q&A over dataset clauses, and runs trained models on legal document file paths.
 
 > Legal disclaimer: LegalEase is for educational assistance only. It does not provide legal advice, does not replace a lawyer, and should not be used as the sole basis for legal or financial decisions.
 
@@ -13,7 +13,7 @@ The project supports a Hugging Face dataset workflow:
 - Fine-tune a clause type classifier with `nlpaueb/legal-bert-base-uncased`, with fallback to `distilbert-base-uncased`.
 - Evaluate simplification and classification outputs.
 - Build Q&A over the Hugging Face-derived clause dataset using SentenceTransformers and FAISS.
-- Run a Streamlit app for dataset browsing, simplification, classification, risk labels, Q&A, and report downloads.
+- Run trained models on `.txt`, `.pdf`, or `.docx` legal document file paths and export reports.
 
 ## Setup With Conda
 
@@ -161,26 +161,6 @@ The Q&A pipeline:
 
 If SentenceTransformers or FAISS is unavailable, the code falls back to lexical retrieval.
 
-## Streamlit App
-
-After installing dependencies and optionally training models, run:
-
-```bash
-conda activate legal-ai
-streamlit run app.py
-```
-
-The app supports:
-
-- Loading rows from the Hugging Face-derived dataset CSVs.
-- Saved simplifier model inference.
-- Saved clause classifier inference.
-- Displaying weak risk labels from Notebook 03.
-- RAG-style dataset Q&A.
-- CSV and TXT report downloads.
-
-If trained models are missing, the app falls back to original clauses for simplification and keyword-based labels for classification.
-
 ## Document File Inference
 
 After training models, run:
@@ -203,7 +183,6 @@ and writes:
 
 ```text
 legal-document-simplifier/
-  app.py
   requirements.txt
   README.md
   .env.example
@@ -244,7 +223,7 @@ conda activate legal-ai
 python -m pytest tests/
 ```
 
-Full model training and Streamlit testing require the ML dependencies and downloaded model files.
+Full model training and document inference require the ML dependencies and downloaded model files.
 
 ## Legal Disclaimer
 

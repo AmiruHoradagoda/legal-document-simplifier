@@ -12,7 +12,6 @@ sentencepiece
 torch
 sentence-transformers
 faiss-cpu
-streamlit
 matplotlib
 textstat
 nltk
