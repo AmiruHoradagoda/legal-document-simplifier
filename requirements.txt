@@ -1,6 +1,7 @@
 pandas
 numpy
 scikit-learn
+PyMuPDF
 transformers
 datasets
 evaluate
@@ -19,3 +20,4 @@ jupyter
 ipykernel
 pytest
 python-dotenv
+python-docx

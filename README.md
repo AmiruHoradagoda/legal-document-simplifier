@@ -1,6 +1,6 @@
 # LegalEase: AI Legal Document Simplifier
 
-LegalEase is a Jupyter-notebook-first Python machine learning project for educational legal document assistance. It builds training data from the public Hugging Face LexGLUE LEDGAR dataset, fine-tunes lightweight NLP models, evaluates outputs, adds retrieval-augmented Q&A over dataset clauses, and provides a Streamlit demo.
+LegalEase is a Jupyter-notebook-first Python machine learning project for educational legal document assistance. It builds training data from the public Hugging Face LexGLUE LEDGAR dataset, fine-tunes NLP models, evaluates outputs, adds retrieval-augmented Q&A over dataset clauses, and provides a Streamlit application.
 
 > Legal disclaimer: LegalEase is for educational assistance only. It does not provide legal advice, does not replace a lawyer, and should not be used as the sole basis for legal or financial decisions.
 
@@ -47,7 +47,9 @@ Run notebooks from top to bottom in this order:
 3. `notebooks/05_train_clause_classifier_legalbert.ipynb`
 4. `notebooks/06_evaluation.ipynb`
 5. `notebooks/07_rag_document_qa.ipynb`
-6. `notebooks/08_end_to_end_demo_test.ipynb`
+6. `notebooks/08_end_to_end_pipeline_validation.ipynb`
+
+After training, use `notebooks/09_document_file_inference.ipynb` to run the saved model weights on a `.txt`, `.pdf`, or `.docx` legal document path.
 
 Notebook 03 downloads public training data from Hugging Face, so you do not need to provide a private or real dataset.
 
@@ -93,7 +95,7 @@ Model:
 - Output model path: `models/simplifier/`
 - Prediction output: `outputs/predictions/simplifier_predictions.csv`
 
-Notebook 03 creates weak simplification targets automatically because public expert-written legal simplification pairs are limited. These targets are suitable for demonstrating the pipeline, but human-written simplifications are still better for final quality.
+Notebook 03 creates automatically generated simplification targets because public expert-written legal simplification pairs are limited. Use reviewed human-written simplifications when final simplification quality is the priority.
 
 ### Clause Classifier
 
@@ -179,6 +181,24 @@ The app supports:
 
 If trained models are missing, the app falls back to original clauses for simplification and keyword-based labels for classification.
 
+## Document File Inference
+
+After training models, run:
+
+```text
+notebooks/09_document_file_inference.ipynb
+```
+
+Set `DOCUMENT_PATH` to a `.txt`, `.pdf`, or `.docx` file. The notebook extracts text, splits it into clauses, loads:
+
+- `models/simplifier/`
+- `models/clause_classifier/`
+
+and writes:
+
+- `outputs/document_inference/<document_name>_model_outputs.csv`
+- `outputs/document_inference/<document_name>_model_outputs.txt`
+
 ## Repository Layout
 
 ```text
@@ -207,7 +227,7 @@ legal-document-simplifier/
 
 ## Limitations
 
-- Notebook 03 samples the public LEDGAR dataset to stay Colab-friendly; increase row limits for stronger training.
+- Notebook 03 uses the full public LEDGAR split sizes by default; reduce row limits only for debugging or hardware constraints.
 - `risk_level` and `risk_type` labels are rule-generated and may be noisy.
 - Simplification targets are weak auto-generated targets, not expert-written plain-language rewrites.
 - Small models may miss legal nuance and can produce incomplete or inaccurate simplifications.
@@ -224,7 +244,7 @@ conda activate legal-ai
 python -m pytest tests/
 ```
 
-Some tests use lightweight fallback paths. Full model training and Streamlit testing require the ML dependencies and downloaded model files.
+Full model training and Streamlit testing require the ML dependencies and downloaded model files.
 
 ## Legal Disclaimer
 

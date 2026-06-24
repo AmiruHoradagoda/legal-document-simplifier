@@ -201,10 +201,10 @@ def build_simplification_dataset(
 
 
 def weak_simplify_legal_text(text: object) -> str:
-    """Create a weak plain-language target for demo training.
+    """Create an automatic plain-language target for training.
 
-    This is not a gold simplification. It gives the model a runnable public-data
-    training target when no human-written simplifications are available.
+    This is not a gold simplification. It gives the model a public-data training
+    target when no human-written simplifications are available.
     """
 
     simplified = re.sub(r"\s+", " ", str(text or "")).strip()

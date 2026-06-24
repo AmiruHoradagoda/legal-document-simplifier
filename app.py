@@ -1,4 +1,4 @@
-"""Streamlit demo for the Hugging Face dataset workflow."""
+"""Streamlit application for the Hugging Face dataset workflow."""
 
 from __future__ import annotations
 
@@ -112,7 +112,7 @@ def initialize_state() -> None:
             st.session_state[key] = value
 
 
-def build_demo_dataset(
+def build_working_dataset(
     simplification_df: pd.DataFrame,
     classification_df: pd.DataFrame,
     *,
@@ -242,7 +242,7 @@ def render_dataset_page(simplification_df: pd.DataFrame, classification_df: pd.D
         st.metric("Classification rows", len(classification_df))
 
     if st.button("Load Rows", type="primary"):
-        selected_df = build_demo_dataset(
+        selected_df = build_working_dataset(
             simplification_df,
             classification_df,
             split=split,
@@ -255,7 +255,7 @@ def render_dataset_page(simplification_df: pd.DataFrame, classification_df: pd.D
         st.session_state.rag_embeddings = None
 
     if st.session_state.selected_df.empty:
-        st.info("Load rows from the Hugging Face-derived dataset to start the demo.")
+        st.info("Load rows from the Hugging Face-derived dataset to start the workflow.")
     else:
         st.dataframe(st.session_state.selected_df, use_container_width=True, hide_index=True)
 
@@ -385,7 +385,7 @@ def main() -> None:
     initialize_state()
     simplification_df, classification_df = load_dataset_csvs()
 
-    st.title("LegalEase: Hugging Face Legal Dataset Demo")
+    st.title("LegalEase: Hugging Face Legal Dataset Workflow")
     st.warning(DISCLAIMER)
 
     page = st.sidebar.radio(

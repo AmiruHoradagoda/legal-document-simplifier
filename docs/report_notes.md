@@ -12,16 +12,16 @@ Use these points to structure the assignment report.
 
 - Legal clauses are often dense and difficult for non-experts to understand.
 - Users need clause-level simplifications, label predictions, risk indicators, and quick search over clause text.
-- Public legal datasets allow a reproducible prototype without using private or real user documents.
+- Public legal datasets allow reproducible training without using private or real user documents.
 
 ## Objectives
 
 - Build training datasets from the public Hugging Face LexGLUE LEDGAR dataset.
-- Fine-tune a lightweight simplification model.
+- Fine-tune a legal clause simplification model.
 - Fine-tune a clause type classifier.
 - Evaluate automatic outputs with NLP and classification metrics.
 - Implement RAG-based Q&A over Hugging Face-derived clauses.
-- Build a Streamlit demo for dataset browsing and model interaction.
+- Build a Streamlit application for dataset browsing and model interaction.
 
 ## Dataset Description
 
